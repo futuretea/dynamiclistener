@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -185,16 +186,20 @@ func (l *listener) Accept() (net.Conn, error) {
 	if err != nil {
 		return conn, err
 	}
+	var host string
+	if  nodeIP := os.Getenv("NODE_IP"); nodeIP != "" {
+		host = nodeIP
+	} else {
+		addr := conn.LocalAddr()
+		if addr == nil {
+			return conn, nil
+		}
 
-	addr := conn.LocalAddr()
-	if addr == nil {
-		return conn, nil
-	}
-
-	host, _, err := net.SplitHostPort(addr.String())
-	if err != nil {
-		logrus.Errorf("failed to parse network %s: %v", addr.Network(), err)
-		return conn, nil
+		host, _, err = net.SplitHostPort(addr.String())
+		if err != nil {
+			logrus.Errorf("failed to parse network %s: %v", addr.Network(), err)
+			return conn, nil
+		}
 	}
 
 	if !strings.Contains(host, ":") {
